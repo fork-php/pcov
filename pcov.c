@@ -57,6 +57,16 @@
 #define GC_SET_REFCOUNT(ref, rc) (GC_REFCOUNT(ref) = (rc))
 #endif
 
+#if PHP_VERSION_ID >= 80600
+/* PHP 8.6 removed the INI_INT()/INI_STR()/INI_BOOL() lookup macros (see
+ * UPGRADING.INTERNALS); map them to the new zend_ini_*_literal() equivalents.
+ * Note: zend_ini_string_literal() returns const char* (the "string" = char*
+ * variant), not the zend_string* "str" variant. */
+# define INI_INT(name)  zend_ini_long_literal(name)
+# define INI_STR(name)  zend_ini_string_literal(name)
+# define INI_BOOL(name) zend_ini_bool_literal(name)
+#endif
+
 static zend_always_inline bool php_pcov_api_enabled(void) {
 	const char* env = getenv("PCOV_ENABLED");
 
@@ -423,7 +433,7 @@ const char *php_pcov_directory_defaults[] = { /* {{{ */
 	NULL
 }; /* }}} */
 
-static  void php_pcov_setup_directory(char *directory) { /* {{{ */
+static  void php_pcov_setup_directory(const char *directory) { /* {{{ */
 	char        realpath[MAXPATHLEN];
 	zend_stat_t statbuf;
 
@@ -448,7 +458,7 @@ static  void php_pcov_setup_directory(char *directory) { /* {{{ */
 	PCG(directory) = zend_string_init(directory, strlen(directory), 0);
 } /* }}} */
 
-static zend_always_inline void php_pcov_setup_exclude(char *exclude) { /* {{{ */
+static zend_always_inline void php_pcov_setup_exclude(const char *exclude) { /* {{{ */
 	zend_string *pattern;
 
 	if (!exclude || !*exclude) {
@@ -547,8 +557,8 @@ PHP_RSHUTDOWN_FUNCTION(pcov)
 PHP_MINFO_FUNCTION(pcov)
 {
 	char info[64];
-	char *directory = INI_STR("pcov.directory");
-	char *exclude   = INI_STR("pcov.exclude");
+	const char *directory = INI_STR("pcov.directory");
+	const char *exclude   = INI_STR("pcov.exclude");
 
 	php_info_print_table_start();
 
